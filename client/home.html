@@ -4,24 +4,309 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home | Lost & Found</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+      }
+      header {
+        background: #4f46e5;
+        color: white;
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header h1 {
+        font-size: 20px;
+      }
+      header button {
+        background: white;
+        color: #4f46e5;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 30px auto;
+        padding: 0 20px;
+      }
+      .welcome {
+        margin-bottom: 24px;
+      }
+      .welcome h2 {
+        font-size: 24px;
+        color: #333;
+      }
+      .welcome p {
+        color: #666;
+        margin-top: 6px;
+      }
+      .report-btn {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-bottom: 24px;
+        font-size: 15px;
+      }
+      .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .item-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .item-card h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      .item-card p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 6px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .badge.lost {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .badge.found {
+        background: #dcfce7;
+        color: #16a34a;
+      }
+      .no-items {
+        text-align: center;
+        color: #999;
+        margin-top: 60px;
+        font-size: 16px;
+      }
+
+      /* Modal */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+      }
+      .modal-overlay.active {
+        display: flex;
+      }
+      .modal {
+        background: white;
+        padding: 32px;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 460px;
+      }
+      .modal h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+      .modal input,
+      .modal select,
+      .modal textarea {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .modal textarea {
+        height: 80px;
+        resize: none;
+      }
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .modal-buttons button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-cancel {
+        background: #f3f4f6;
+        color: #333;
+      }
+      .btn-submit {
+        background: #4f46e5;
+        color: white;
+      }
+    </style>
   </head>
   <body>
     <script>
       if (!localStorage.getItem("token")) {
-        window.location.href = "login.html";
+        window.location.href = "/client/pages/login.html";
       }
     </script>
 
-    <h1>Welcome to Lost & Found</h1>
-    <p>You are logged in!</p>
-    <button onclick="logout()">Logout</button>
+    <header>
+      <h1>Lost & Found</h1>
+      <button onclick="logout()">Logout</button>
+    </header>
+
+    <div class="container">
+      <div class="welcome">
+        <h2 id="welcome-msg">Welcome back!</h2>
+        <p>Recent lost & found items</p>
+      </div>
+
+      <button class="report-btn" onclick="openModal()">+ Report Item</button>
+
+      <div class="items-grid" id="items-grid">
+        <p class="no-items">Loading items...</p>
+      </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <h2>Report an Item</h2>
+        <input type="text" id="item-name" placeholder="Item name" />
+        <select id="item-type">
+          <option value="lost">Lost</option>
+          <option value="found">Found</option>
+        </select>
+        <input
+          type="text"
+          id="item-category"
+          placeholder="Category (e.g. Accessories)"
+        />
+        <input type="text" id="item-location" placeholder="Location" />
+        <textarea id="item-description" placeholder="Description"></textarea>
+        <p
+          id="modal-error"
+          style="
+            color: red;
+            font-size: 13px;
+            margin-bottom: 10px;
+            display: none;
+          "
+        ></p>
+        <div class="modal-buttons">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-submit" onclick="reportItem()">Submit</button>
+        </div>
+      </div>
+    </div>
 
     <script>
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      // Show welcome message
+      if (user.name) {
+        document.getElementById("welcome-msg").textContent =
+          `Welcome back, ${user.name}!`;
+      }
+
+      // Load items
+      async function loadItems() {
+        const response = await fetch("http://localhost:5000/api/items");
+        const items = await response.json();
+        const grid = document.getElementById("items-grid");
+
+        if (!items.length) {
+          grid.innerHTML = '<p class="no-items">No items reported yet.</p>';
+          return;
+        }
+
+        grid.innerHTML = items
+          .map(
+            (item) => `
+        <div class="item-card">
+          <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
+          <h3>${item.name}</h3>
+          <p>📍 ${item.location}</p>
+          <p>🏷️ ${item.category}</p>
+          <p>${item.description || ""}</p>
+        </div>
+      `,
+          )
+          .join("");
+      }
+
+      // Report item
+      async function reportItem() {
+        const name = document.getElementById("item-name").value;
+        const type = document.getElementById("item-type").value;
+        const category = document.getElementById("item-category").value;
+        const location = document.getElementById("item-location").value;
+        const description = document.getElementById("item-description").value;
+        const errorMsg = document.getElementById("modal-error");
+
+        if (!name || !category || !location) {
+          errorMsg.textContent = "Please fill in all required fields.";
+          errorMsg.style.display = "block";
+          return;
+        }
+
+        const response = await fetch("http://localhost:5000/api/items", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name, type, category, location, description }),
+        });
+
+        if (response.ok) {
+          closeModal();
+          loadItems();
+        } else {
+          const data = await response.json();
+          errorMsg.textContent = data.message || "Failed to report item.";
+          errorMsg.style.display = "block";
+        }
+      }
+
+      // Modal controls
+      function openModal() {
+        document.getElementById("modal-overlay").classList.add("active");
+      }
+      function closeModal() {
+        document.getElementById("modal-overlay").classList.remove("active");
+        document.getElementById("modal-error").style.display = "none";
+      }
+
+      // Logout
       function logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "login.html";
+        window.location.href = "/client/pages/login.html";
       }
+
+      loadItems();
     </script>
   </body>
 </html>
