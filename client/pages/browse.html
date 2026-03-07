@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browse | Lost & Found</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+      }
+      header {
+        background: #4f46e5;
+        color: white;
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header h1 {
+        font-size: 20px;
+      }
+      header button {
+        background: white;
+        color: #4f46e5;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 30px auto;
+        padding: 0 20px;
+      }
+      .filters {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .filters input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 200px;
+      }
+      .filters select {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .item-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      .item-card h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      .item-card p {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 6px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .badge.lost {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .badge.found {
+        background: #dcfce7;
+        color: #16a34a;
+      }
+      .contact-btn {
+        margin-top: 10px;
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        width: 100%;
+      }
+      .no-items {
+        text-align: center;
+        color: #999;
+        margin-top: 60px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      if (!localStorage.getItem("token")) {
+        window.location.href = "/client/pages/login.html";
+      }
+    </script>
+
+    <header>
+      <h1>Browse Items</h1>
+      <button onclick="logout()">Logout</button>
+    </header>
+
+    <div class="container">
+      <div class="filters">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search by name or location..."
+          oninput="filterItems()"
+        />
+        <select id="type-filter" onchange="filterItems()">
+          <option value="all">All Types</option>
+          <option value="lost">Lost</option>
+          <option value="found">Found</option>
+        </select>
+      </div>
+
+      <div class="items-grid" id="items-grid">
+        <p class="no-items">Loading items...</p>
+      </div>
+    </div>
+
+    <script>
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      let allItems = [];
+
+      // Load all items
+      async function loadItems() {
+        const response = await fetch("http://localhost:5000/api/items");
+        allItems = await response.json();
+        renderItems(allItems);
+      }
+
+      // Render items to grid
+      function renderItems(items) {
+        const grid = document.getElementById("items-grid");
+
+        if (!items.length) {
+          grid.innerHTML = '<p class="no-items">No items found.</p>';
+          return;
+        }
+
+        grid.innerHTML = items
+          .map(
+            (item) => `
+        <div class="item-card">
+          <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
+          <h3>${item.name}</h3>
+          <p>📍 ${item.location}</p>
+          <p>🏷️ ${item.category}</p>
+          <p>${item.description || ""}</p>
+          <button class="contact-btn" onclick="contact('${item._id}')">
+            Contact / Claim
+          </button>
+        </div>
+      `,
+          )
+          .join("");
+      }
+
+      // Filter items client-side
+      function filterItems() {
+        const query = document
+          .getElementById("search-input")
+          .value.toLowerCase();
+        const type = document.getElementById("type-filter").value;
+
+        const filtered = allItems.filter((item) => {
+          const matchesSearch =
+            item.name.toLowerCase().includes(query) ||
+            item.location.toLowerCase().includes(query);
+          const matchesType = type === "all" || item.type === type;
+          return matchesSearch && matchesType;
+        });
+
+        renderItems(filtered);
+      }
+
+      // Contact / Claim button
+      function contact(itemId) {
+        if (!token) {
+          window.location.href = "/client/pages/login.html";
+          return;
+        }
+        alert(
+          `You are logged in as ${user.name || "a user"}.\nContact feature coming soon!`,
+        );
+      }
+
+      // Logout
+      function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/client/pages/login.html";
+      }
+
+      loadItems();
+    </script>
+  </body>
+</html>
