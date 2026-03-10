@@ -2,7 +2,15 @@ const Item = require('../models/Item');
 
 exports.getItems = async (req, res) => {
   try {
-    const items = await Item.find({ status: 'active' }).populate('reportedBy', 'name');
+    let query = {};
+
+   if (req.query.user === 'me') {
+  query.reportedBy = req.user.id || req.user._id;
+}else {
+      query.status = 'active';
+    }
+
+    const items = await Item.find(query).populate('reportedBy', 'name');
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -24,7 +32,12 @@ exports.createItem = async (req, res) => {
 
 exports.updateItem = async (req, res) => {
   try {
-    const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const item = await Item.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    );
+    if (!item) return res.status(404).json({ message: 'Item not found' });
     res.json(item);
   } catch (err) {
     res.status(400).json({ message: err.message });

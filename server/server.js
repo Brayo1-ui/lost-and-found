@@ -8,7 +8,11 @@ dotenv.config();
 const app = express();
  
 // Middleware
-app.use(cors());
+// Middleware
+app.use(cors({
+  origin: 'http://127.0.0.1:5500',
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
  
@@ -23,3 +27,4 @@ mongoose.connect(process.env.MONGO_URI)
     app.listen(process.env.PORT || 5000, () => console.log('Server running on port 5000'));
   })
   .catch(err => console.error(err));
+  
