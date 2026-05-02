@@ -71,6 +71,13 @@
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
+      .item-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
       .item-card h3 {
         font-size: 16px;
         margin-bottom: 8px;
@@ -122,6 +129,8 @@
         border-radius: 10px;
         width: 100%;
         max-width: 460px;
+        max-height: 90vh;
+        overflow-y: auto;
       }
       .modal h2 {
         margin-bottom: 20px;
@@ -140,6 +149,31 @@
       .modal textarea {
         height: 80px;
         resize: none;
+      }
+      .modal input[type="file"] {
+        padding: 6px;
+        border: 1px dashed #a5b4fc;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #f5f3ff;
+        color: #4f46e5;
+      }
+      .file-label {
+        display: block;
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 6px;
+        margin-top: -4px;
+      }
+      /* Image preview */
+      #image-preview {
+        display: none;
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin-bottom: 14px;
+        border: 1px solid #ddd;
       }
       .modal-buttons {
         display: flex;
@@ -160,6 +194,10 @@
       .btn-submit {
         background: #4f46e5;
         color: white;
+      }
+      .btn-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
     </style>
   </head>
@@ -204,6 +242,17 @@
         />
         <input type="text" id="item-location" placeholder="Location" />
         <textarea id="item-description" placeholder="Description"></textarea>
+
+        <!-- Image Upload -->
+        <span class="file-label">📷 Upload item image (optional)</span>
+        <input
+          type="file"
+          id="item-image"
+          accept="image/*"
+          onchange="previewImage(event)"
+        />
+        <img id="image-preview" alt="Image preview" />
+
         <p
           id="modal-error"
           style="
@@ -215,7 +264,9 @@
         ></p>
         <div class="modal-buttons">
           <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-          <button class="btn-submit" onclick="reportItem()">Submit</button>
+          <button class="btn-submit" id="submit-btn" onclick="reportItem()">
+            Submit
+          </button>
         </div>
       </div>
     </div>
@@ -228,6 +279,19 @@
       if (user.name) {
         document.getElementById("welcome-msg").textContent =
           `Welcome back, ${user.name}!`;
+      }
+
+      // Preview selected image before upload
+      function previewImage(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById("image-preview");
+        if (file) {
+          preview.src = URL.createObjectURL(file);
+          preview.style.display = "block";
+        } else {
+          preview.src = "";
+          preview.style.display = "none";
+        }
       }
 
       // Load items
@@ -244,26 +308,31 @@
         grid.innerHTML = items
           .map(
             (item) => `
-        <div class="item-card">
-          <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
-          <h3>${item.name}</h3>
-          <p>📍 ${item.location}</p>
-          <p>🏷️ ${item.category}</p>
-          <p>${item.description || ""}</p>
-        </div>
-      `,
+          <div class="item-card">
+            ${item.image ? `<img src="http://localhost:5000/uploads/${item.image}" alt="${item.name}" />` : ""}
+            <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
+            <h3>${item.name}</h3>
+            <p>📍 ${item.location}</p>
+            <p>🏷️ ${item.category}</p>
+            <p>${item.description || ""}</p>
+          </div>
+        `,
           )
           .join("");
       }
 
-      // Report item
+      // Report item with image upload
       async function reportItem() {
-        const name = document.getElementById("item-name").value;
+        const name = document.getElementById("item-name").value.trim();
         const type = document.getElementById("item-type").value;
-        const category = document.getElementById("item-category").value;
-        const location = document.getElementById("item-location").value;
-        const description = document.getElementById("item-description").value;
+        const category = document.getElementById("item-category").value.trim();
+        const location = document.getElementById("item-location").value.trim();
+        const description = document
+          .getElementById("item-description")
+          .value.trim();
+        const imageFile = document.getElementById("item-image").files[0];
         const errorMsg = document.getElementById("modal-error");
+        const submitBtn = document.getElementById("submit-btn");
 
         if (!name || !category || !location) {
           errorMsg.textContent = "Please fill in all required fields.";
@@ -271,14 +340,30 @@
           return;
         }
 
+        // Use FormData to send text + file together
+        const formData = new FormData();
+        formData.append("name", name);
+        formData.append("type", type);
+        formData.append("category", category);
+        formData.append("location", location);
+        formData.append("description", description);
+        if (imageFile) formData.append("image", imageFile);
+
+        // Disable button while submitting
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
+
         const response = await fetch("http://localhost:5000/api/items", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            // ⚠️ Do NOT set Content-Type — browser sets it automatically for FormData
           },
-          body: JSON.stringify({ name, type, category, location, description }),
+          body: formData,
         });
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit";
 
         if (response.ok) {
           closeModal();
@@ -294,9 +379,19 @@
       function openModal() {
         document.getElementById("modal-overlay").classList.add("active");
       }
+
       function closeModal() {
         document.getElementById("modal-overlay").classList.remove("active");
         document.getElementById("modal-error").style.display = "none";
+        document.getElementById("item-name").value = "";
+        document.getElementById("item-type").value = "lost";
+        document.getElementById("item-category").value = "";
+        document.getElementById("item-location").value = "";
+        document.getElementById("item-description").value = "";
+        document.getElementById("item-image").value = "";
+        const preview = document.getElementById("image-preview");
+        preview.src = "";
+        preview.style.display = "none";
       }
 
       // Logout
