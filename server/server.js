@@ -10,7 +10,10 @@ const app = express();
 // Middleware
 // Middleware
 app.use(cors({
-  origin: 'http://127.0.0.1:5500',
+  origin: [
+    'http://127.0.0.1:5500',
+    'https://sparkly-donut-50eb7e.netlify.app'
+  ],
   credentials: true
 }));
 app.use(express.json());
