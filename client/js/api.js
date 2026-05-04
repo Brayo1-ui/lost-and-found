@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:5000/api';
+const BASE = 'https://lost-and-found-api-bvxg.onrender.com/api';
 
 // Store token after login
 export const saveToken = (token) => localStorage.setItem('token', token);

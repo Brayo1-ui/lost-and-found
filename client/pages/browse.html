@@ -70,6 +70,13 @@
         padding: 20px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
+      .item-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        border-radius: 6px;
+        margin-bottom: 12px;
+      }
       .item-card h3 {
         font-size: 16px;
         margin-bottom: 8px;
@@ -118,7 +125,7 @@
   <body>
     <script>
       if (!localStorage.getItem("token")) {
-        window.location.href = "/client/pages/login.html";
+        window.location.replace("login.html");
       }
     </script>
 
@@ -148,13 +155,14 @@
     </div>
 
     <script>
+      const API = "https://lost-and-found-api-bvxg.onrender.com";
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       let allItems = [];
 
       // Load all items
       async function loadItems() {
-        const response = await fetch("http://localhost:5000/api/items");
+        const response = await fetch(`${API}/api/items`);
         allItems = await response.json();
         renderItems(allItems);
       }
@@ -171,17 +179,18 @@
         grid.innerHTML = items
           .map(
             (item) => `
-        <div class="item-card">
-          <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
-          <h3>${item.name}</h3>
-          <p>📍 ${item.location}</p>
-          <p>🏷️ ${item.category}</p>
-          <p>${item.description || ""}</p>
-          <button class="contact-btn" onclick="contact('${item._id}')">
-            Contact / Claim
-          </button>
-        </div>
-      `,
+          <div class="item-card">
+            ${item.image ? `<img src="${API}/uploads/${item.image}" alt="${item.name}" />` : ""}
+            <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
+            <h3>${item.name}</h3>
+            <p>📍 ${item.location}</p>
+            <p>🏷️ ${item.category}</p>
+            <p>${item.description || ""}</p>
+            <button class="contact-btn" onclick="contact('${item._id}')">
+              Contact / Claim
+            </button>
+          </div>
+        `,
           )
           .join("");
       }
@@ -207,7 +216,7 @@
       // Contact / Claim button
       function contact(itemId) {
         if (!token) {
-          window.location.href = "/client/pages/login.html";
+          window.location.replace("login.html");
           return;
         }
         alert(
@@ -219,7 +228,7 @@
       function logout() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        window.location.href = "/client/pages/login.html";
+        window.location.replace("login.html");
       }
 
       loadItems();

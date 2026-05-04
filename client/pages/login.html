@@ -83,6 +83,8 @@
     </div>
 
     <script>
+      const API = "https://lost-and-found-api-bvxg.onrender.com";
+
       async function login() {
         const email = document.getElementById("email").value;
         const password = document.getElementById("password").value;
@@ -97,7 +99,7 @@
         }
 
         try {
-          const response = await fetch("http://localhost:5000/api/auth/login", {
+          const response = await fetch(`${API}/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password }),
@@ -106,29 +108,15 @@
           const data = await response.json();
 
           if (response.ok) {
-            // TEMPORARY DEBUG
-            // Save token and user to localStorage
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            // Verify it was saved
-            const savedToken = localStorage.getItem("token");
-            if (savedToken) {
-              // Redirect to home page
-              window.location.replace(
-                "http://127.0.0.1:5500/client/pages/home.html",
-              );
-            } else {
-              errorMsg.textContent =
-                "Failed to save session. Please try again.";
-              errorMsg.style.display = "block";
-            }
+            window.location.replace("home.html");
           } else {
             errorMsg.textContent = data.message || "Login failed. Try again.";
             errorMsg.style.display = "block";
           }
         } catch (err) {
-          errorMsg.textContent =
-            "Cannot connect to server. Make sure it is running.";
+          errorMsg.textContent = "Cannot connect to server. Please try again.";
           errorMsg.style.display = "block";
         }
       }

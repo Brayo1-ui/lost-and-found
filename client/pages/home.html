@@ -165,7 +165,6 @@
         margin-bottom: 6px;
         margin-top: -4px;
       }
-      /* Image preview */
       #image-preview {
         display: none;
         width: 100%;
@@ -272,6 +271,7 @@
     </div>
 
     <script>
+      const API = "https://lost-and-found-api-bvxg.onrender.com";
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -296,7 +296,7 @@
 
       // Load items
       async function loadItems() {
-        const response = await fetch("http://localhost:5000/api/items");
+        const response = await fetch(`${API}/api/items`);
         const items = await response.json();
         const grid = document.getElementById("items-grid");
 
@@ -309,7 +309,7 @@
           .map(
             (item) => `
           <div class="item-card">
-            ${item.image ? `<img src="http://localhost:5000/uploads/${item.image}" alt="${item.name}" />` : ""}
+            ${item.image ? `<img src="${API}/uploads/${item.image}" alt="${item.name}" />` : ""}
             <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
             <h3>${item.name}</h3>
             <p>📍 ${item.location}</p>
@@ -340,7 +340,6 @@
           return;
         }
 
-        // Use FormData to send text + file together
         const formData = new FormData();
         formData.append("name", name);
         formData.append("type", type);
@@ -349,15 +348,13 @@
         formData.append("description", description);
         if (imageFile) formData.append("image", imageFile);
 
-        // Disable button while submitting
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting...";
 
-        const response = await fetch("http://localhost:5000/api/items", {
+        const response = await fetch(`${API}/api/items`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
-            // ⚠️ Do NOT set Content-Type — browser sets it automatically for FormData
           },
           body: formData,
         });
